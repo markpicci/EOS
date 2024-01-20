@@ -2,8 +2,8 @@
 EOS for GAS and Water
 
 This is a collection of Equation of State for GAS and Water written by others, for a detail explanation refer to Github pages
-   - AGA 8 - Written by Eric W. Lemmon
-   - GERG 2008  - Written by Eric W. Lemmon
+  - AGA 8 - Written by Eric W. Lemmon
+  - GERG 2008  - Written by Eric W. Lemmon
   - Generalized Cubic - J. Res. NIST, 2016
   - IF97 - Ian Bell and the CoolProp team
 
@@ -30,5 +30,8 @@ Item d - deleet ALL mixture
 item e - exit and return to main menu
 
 I would like to note that binary interaction parameter for the Generalized Cubic Peng Robinson equation are quite rude and shall be revised, any contribution is most then welcome.
+
+BUILD
+Main sub is included in EOS.CPP simple attach to your project all other files, I personally succesfully compile it using mingw and codeblock on wondows operative system. Other environment are not supported.
 
 Licensed under the [GNU Lesser General Public License, Version 3.0 without any warranty or liability.
