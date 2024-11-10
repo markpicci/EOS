@@ -93,8 +93,15 @@ double Mm; //Mm - Molar mass (g/mol)
 int ArrayZero=1;
 inline double sq(double x) { return x*x; }
 
-std::string gas[NcDetail+1] = {"", "Methane", "Nitrogen", "Carbon_dioxide", "Ethane", "Propane", "iso-Butane", "n-Butane", "iso-Pentane", "n-Pentane", "n-Hexane",
-                     "n-Heptane", "n-Octane", "n-Nonane", "n-Decane", "Hydrogen", "Oxygen", "Carbon_monoxide",  "Water", "Hydrogen_sulfide", "Helium", "Argon"};
+//std::string gas[NcDetail+1] = {"",  "Methane",    "Nitrogen",         "Carbon_dioxide", "Ethane",           "Propane",
+                                    //"iso-Butane", "n-Butane",         "iso-Pentane",    "n-Pentane",        "n-Hexane",
+                                    //"n-Heptane",  "n-Octane",         "n-Nonane",       "n-Decane",         "Hydrogen",
+                                    //"Oxygen",     "Carbon_monoxide",  "Water",          "Hydrogen_sulfide", "Helium",   "Argon"};
+
+std::vector<std::string>  gas =  {"", "74-82-8",     "7727-37-9",       "124-38-9",       "74-84-0",          "74-98-6",
+                                       "75-28-5",    "106-97-8",        "78-78-4",        "109-66-0",         "110-54-3",
+                                       "142-82-5",   "111-65-9",        "111-84-2",       "124-18-5",         "1333-74-0",
+                                       "7782-44-7",  "630-08-0",        "7732-18-5",      "7783-06-4",        "7440-59-7", "7440-37-1"};
 public:
     AGA8Detail(){SetupDetail();}
     ~AGA8Detail(){}
@@ -200,7 +207,7 @@ void Density(const double T, const double P, double &D, int &ierr, std::string &
         }
         D = exp(-vlog);
         PressureDetail(T, D, P2, Z);
-        std::cout <<" Log D "<< D<< " P "<<P<<"\n";
+        //std::cout <<" Log D "<< D<< " P "<<P<<"\n";
         if (dPdDsave < epsD || P2 < epsD){
           vlog += 0.1;
         }

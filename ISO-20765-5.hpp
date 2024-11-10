@@ -1,5 +1,5 @@
-#ifndef __ISO20765-5__
-#define __ISO20765-5__
+#ifndef __ISO20765_5__H
+#define __ISO20765_5__H
 
 #include <math.h>
 //  **********  This code is preliminary, and will be updated.  **********
@@ -16,8 +16,15 @@ private:
 // Density Molar density mol/dm3
 //
 enum {naga = 21};
-std::string gas[naga] = {"Methane", "Nitrogen", "Carbon dioxide", "Ethane", "Propane", "Water", "Hydrogen sulfide", "Hydrogen", "Carbon monoxide", "Oxygen",
-                    "iso-Butane", "n-Butane", "iso-Pentane", "n-Pentane", "n-Hexane", "n-Heptane", "n-Octane", "n-Nonane", "n-Decane", "Helium", "Argon"};
+//std::string gas[naga] = {"Methane",          "Nitrogen", "Carbon dioxide",  "Ethane",    "Propane",  "Water",
+                         //"Hydrogen sulfide", "Hydrogen", "Carbon monoxide", "Oxygen",
+                         //"iso-Butane",       "n-Butane", "iso-Pentane",     "n-Pentane", "n-Hexane",
+                         //"n-Heptane",        "n-Octane", "n-Nonane",        "n-Decane",  "Helium",   "Argon"};
+
+std::vector<std::string> gas = {"74-82-8" ,        "7727-37-9",       "124-38-9",         "74-84-0",      "74-98-6",   "7732-18-5",
+                                "7783-06-4",        "1333-74-0",       "630-08-0",         "7782-44-7",
+                                "75-28-5",          "106-97-8",        "78-78-4",          "109-66-0",     "110-54-3",
+                                "142-82-5",         "111-65-9",        "111-84-2",         "124-18-5",     "7440-59-7", "7440-37-1"};
 
 double visMi[naga] = {16.04246, 28.0134, 44.0095, 30.06904, 44.09562, 18.01528, 34.08088, 2.01588, 28.0101, 31.9988, 58.1222, 58.1222, 72.14878, 72.14878, 86.17536, 100.20194, 114.22852, 128.2551, 142.28168, 4.002602, 39.948}; // (g*mol-1)
 double visRhoc[naga] = {10.139342719, 11.1839, 10.624978698, 6.87085454, 5.000043088, 17.87371609, 10.19, 14.94, 10.85, 13.63, 3.86014294, 3.920016792, 3.271, 3.215577588, 2.705877875, 2.315324434, 2.056404127, 1.81, 1.64, 17.399, 13.407429659}; //(mol*dm-3)

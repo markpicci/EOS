@@ -19,13 +19,19 @@
 #include <map>
 #include <cmath>
 #include "MathUtil.h"
+#include "Kij.hpp"
+#include "DB.hpp"
+
+extern DB db;
 
 class AbstractCubic
 {
 protected:
+    //Kconst KijConst;
+    Kcontribution kcontribution;
     const double rho_r =1.0, T_r=1.0;
     std::vector<double> Tc, ///< Vector of critical temperatures (in K)
-                        pc, ///< Vector of critical pressures (in Pa)
+                        Pc, ///< Vector of critical pressures (in Pa)
                         acentric, ///< Vector of acentric factors (unitless)
                         MMi;
     double R_u; ///< The universal gas constant  in J/(mol*K)
@@ -40,8 +46,13 @@ protected:
     std::vector<double> C1,C2,C3;///< The Mathias-Copeman coefficients for a_ii
     enum {nSos = 21}; //for set up as per AGA of ISO
     std::vector<double> x; // Molar composition
-    std::string gas[nSos]= {"Methane", "Nitrogen", "Carbon_dioxide", "Ethane", "Propane", "Water", "HHydrogen_sulfide", "Hydrogen", "Carbon_monoxide", "Oxygen",
-                    "iso-Butane", "n-Butane", "iso-Pentane", "n-Pentane", "n-Hexane", "n-Heptane", "n-Octane", "n-Nonane", "n-Decane", "Helium", "Argon"};
+    //std::string gas[nSos]= {"Methane", "Nitrogen", "Carbon_dioxide", "Ethane", "Propane", "Water", "Hydrogen_sulfide", "Hydrogen", "Carbon_monoxide", "Oxygen",
+    //              "iso-Butane", "n-Butane", "iso-Pentane", "n-Pentane", "n-Hexane", "n-Heptane", "n-Octane", "n-Nonane", "n-Decane", "Helium", "Argon"};
+
+    std::vector<std::string> gas = {"74-82-8" ,        "7727-37-9",       "124-38-9",         "74-84-0",      "74-98-6",   "7732-18-5",
+                                    "7783-06-4",        "1333-74-0",       "630-08-0",         "7782-44-7",
+                                    "75-28-5",          "106-97-8",        "78-78-4",          "109-66-0",     "110-54-3",
+                                    "142-82-5",         "111-65-9",        "111-84-2",         "124-18-5",     "7440-59-7", "7440-37-1"};
 
 public:
     /**
@@ -54,7 +65,7 @@ public:
 
      */
     AbstractCubic(std::vector<double> Tc,
-                  std::vector<double> pc,
+                  std::vector<double> Pc,
                   std::vector<double> acentric,
                   double R_u,
                   double Delta_1,
@@ -63,7 +74,7 @@ public:
                   std::vector<double> C2 = std::vector<double>(),
                   std::vector<double> C3 = std::vector<double>()
                  )
-        : Tc(Tc), pc(pc), acentric(acentric), R_u(R_u), Delta_1(Delta_1), Delta_2(Delta_2), C1(C1), C2(C2), C3(C3)
+        : Tc(Tc), Pc(Pc), acentric(acentric), R_u(R_u), Delta_1(Delta_1), Delta_2(Delta_2), C1(C1), C2(C2), C3(C3)
         {
             N = static_cast<int>(Tc.size());
             k.resize(N, std::vector<double>(N, 0));
@@ -79,38 +90,23 @@ public:
         :  R_u(R_u), Delta_1(Delta_1), Delta_2(Delta_2)
         {
         size_t i,j;
+            bool res;
             N = nSos;
-            k.resize(nSos, std::vector<double>(nSos, 0));
+            k.resize(N, std::vector<double>(N, 0));
             x.resize(N, 0.0);
+            MMi.resize(N, 0.0);
+            Tc.resize(N, 0.0);
+            Pc.resize(N, 0.0);
+            acentric.resize(N, 0.0);
+
             simple_aii = true;
-            MMi = {16.04246, 28.0134, 44.0095, 30.06904, 44.09562, 18.01528, 34.08088, 2.01588, 28.0101, 31.9988, 58.1222, 58.1222, 72.14878, 72.14878, 86.17536, 100.20194, 114.22852, 128.2551, 142.28168, 4.002602, 39.948}; // (g*mol-1)
-            Tc = {190.564, 126.192, 304.1282, 305.322, 369.825, 647.096, 373.1, 33.19, 132.86, 154.595, 407.817, 425.125, 460.35, 469.7, 507.82, 540.13, 569.32, 594.55, 617.7, 5.1953, 150.687}; // (K)
-            pc = {4.5992, 3.3958, 7.3773, 4.8722, 4.2512, 22.064, 9, 1.2964, 3.494, 5.043, 3.629, 3.796, 3.378, 3.37, 3.034, 2.736, 2.497, 2.281, 2.103, 0.2276, 4.863}; // (MPa)
-            acentric = {0.01142, 0.0372, 0.22394, 0.0995, 0.1521, 0.3443, 0.1005, -0.219, 0.0497, 0.0222, 0.184, 0.201, 0.2274, 0.251, 0.299, 0.349, 0.393, 0.4433, 0.4884, -0.385, -0.00219};
-            for(i=0; i<N;i++) for(j=0; j<N;j++) k[i][j] = 0.0;
-            //CH4, N, CO2, C2H6, C3H8, H2O, H2S, H2, CO, O2, "iso-Butane", "n-Butane", "iso-Pentane", "n-Pentane", "n-Hexane", "n-Heptane", "n-Octane", "n-Nonane", "n-Decane", He, Ar
-            //0,   1, 2,   3,    4,    5,   6,   7,  8,  9,   10,           11,         12,            13,          14,         15,          16,         17,         18,        19, 20
-            k[0]  = {0, 0.031, 0.12, 0, 0, 0, 0,  0, 0.03, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[1]  = {0.031, 0, -0.02, 0.062, 0.085, 0, 0,  0, 0.012, 0, 0.103, 0.08, 0.092, 0.1, 0.08, 0.08, 0.08, 0.08, 0.08, 0, 0};
-            k[2]  = {0.12, -0.02, 0, 0.12, 0.12, 0, 0,  0, 0.3, 0, 0.12, 0.12, 0.12, 0.12, 0.12, 0.1, 0.1, 0.1, 0.1, 0, 0};
-            k[3]  = {0, 0.062, 0.12, 0, 0, 0, 0,  0, 0.026, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[4]  = {0, 0.085, 0.12, 0, 0, 0, 0,  0, 0.03, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[5]  = {0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[6]  = {0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[7]  = {0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[8]  = {0.03, 0.012, 0.3, 0.026, 0.03, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[9]  = {0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[10] = {0, 0.103, 0.12, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[11] = {0, 0.08, 0.12, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[12] = {0, 0.092, 0.12, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[13] = {0, 0.1, 0.12, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[14] = {0, 0.08, 0.12, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[15] = {0, 0.08, 0.1, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[16] = {0, 0.08, 0.1, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[17] = {0, 0.08, 0.1, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[18] = {0, 0.08, 0.1, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[19] = {0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            k[20] = {0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+            for(int i= 0; i < N; i++){
+                MMi[i]      = std::any_cast<double>(db.get(gas[i], DB::Eq::GEN, DB::DataID::Mm,       res));
+                Tc[i]       = std::any_cast<double>(db.get(gas[i], DB::Eq::GEN, DB::DataID::Tc,       res));
+                Pc[i]       = std::any_cast<double>(db.get(gas[i], DB::Eq::GEN, DB::DataID::Pc,       res));
+                acentric[i] = std::any_cast<double>(db.get(gas[i], DB::Eq::GEN, DB::DataID::Acentric, res));
+            }
+            //KijConst.Kij(k);
         };
 
     void MolarMassXi(std::vector<double>& _x, bool normalize = false){
@@ -121,7 +117,7 @@ public:
         if (normalize && abs(xiTot)>=epsD) for(std::size_t i = 0; i < N; i++) x[i] /= xiTot;
         Pcm = 0.0; Tcm = 0.0;
         for(std::size_t i = 0; i < N; i++) {
-                Pcm += x[i]*pc[i];
+                Pcm += x[i]*Pc[i];
                 Tcm += x[i]*Tc[i];
         }
         Pcm *= 1000.0; // Mpa tp Kpa
@@ -138,7 +134,7 @@ public:
         Mm = 0; Pcm = 0.0; Tcm = 0.0;
         for(std::size_t i = 0; i < N; i++) {
                 Mm += x[i]*MMi[i]; // (g*mol-1)
-                Pcm += x[i]*pc[i];
+                Pcm += x[i]*Pc[i];
                 Tcm += x[i]*Tc[i];
         }
         Pcm *= 1000.0; // Mpa tp Kpa
@@ -154,7 +150,7 @@ public:
     /// Get the vector of critical temperatures (in K)
     std::vector<double> &get_Tc(){ return Tc; }
     /// Get the vector of critical pressures (in Pa)
-    std::vector<double> &get_pc(){ return pc; }
+    std::vector<double> &get_pc(){ return Pc; }
     /// Get the vector of acentric factors
     std::vector<double> &get_acentric(){ return acentric; }
     /// Read-only accessor for value of Delta_1
@@ -203,7 +199,7 @@ void Properties(const double T, const double rho, double &P, double &Z, double &
     //     JT - Joule-Thomson coefficient (K/kPa)
     //  Kappa - Isentropic Exponent
     //      A - Helmholtz energy (J/mol)
-
+    kcontribution.Kij(T,k);
     double ar, DarDd, D2arDdd, DarDt, D2arDtt, D2arDtDd, phi1, phi2, a, DaDt, D2aDtt;
     double tau = T_r/T, delta = rho/1000.0/rho_r; //from kmol/kg to mol/kg
     ar = alphar(tau, delta, 0, 0);
@@ -670,7 +666,7 @@ public:
 
         A = am_term(tau,0)*P/1000.0/pow(R_u*T,2);
         B = bm_term()*P/1000.1/R_u/T;
-
+        Z = 0.0;
         nRoot = cubicRoot(1.0, -1.0+B, A-2.0*B-3.0*B*B, -A*B+B*B+B*B*B, root, img);
         if (nRoot==1) Z = root[0];
         if (nRoot==2) Z = root[1];

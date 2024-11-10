@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="AGA8-9DC" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/AGA8-9DC" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/AGA8-9DC" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Linker>
+			<Add option="-lstdc++" />
+		</Linker>
+		<Unit filename="../AGA8 Detail.hpp" />
+		<Unit filename="../AGA8 Gross.hpp" />
+		<Unit filename="../BWRS.hpp" />
+		<Unit filename="../ConIO.CPP" />
+		<Unit filename="../ConIO.h" />
+		<Unit filename="../DB.hpp" />
+		<Unit filename="../EOS.CPP" />
+		<Unit filename="../GERG2008.hpp" />
+		<Unit filename="../IF97.hpp" />
+		<Unit filename="../ISO-12213-2.hpp" />
+		<Unit filename="../ISO-20765-5.hpp" />
+		<Unit filename="../Kij.hpp" />
+		<Unit filename="../Main.CPP" />
+		<Unit filename="../MathUtil .cpp" />
+		<Unit filename="../Valve.hpp" />
+		<Unit filename="../equipment.cpp" />
+		<Unit filename="../generalizedcubic.cpp" />
+		<Unit filename="../generalizedcubic.hpp" />
+		<Unit filename="../mainh.hpp" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>

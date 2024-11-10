@@ -1,5 +1,5 @@
-#ifndef __ISO-12213-2__
-#define __ISO-12213-2__
+#ifndef __ISO_12213_2__H
+#define __ISO_12213_2__H
 
 #include <math.h>
 #include <string>
@@ -18,8 +18,15 @@ typedef double  aga [naga];
 typedef double  arc [nc];
 typedef long    aic [nc];
 
-std::string gas[naga] = {"Methane", "Nitrogen", "Carbon_dioxide", "Ethane", "Propane", "Water", "Hydrogen_sulfide", "Hydrogen", "Carbon_monoxide", "Oxygen",
-                    "iso-Butane", "n-Butane", "iso-Pentane", "n-Pentane", "n-Hexane", "n-Heptane", "n-Octane", "n-Nonane", "n-Decane", "Helium", "Argon"};
+//std::string gas[naga] = {"Methane",          "Nitrogen",   "Carbon_dioxide",  "Ethane",    "Propane",  "Water",
+                         //"Hydrogen_sulfide", "Hydrogen",   "Carbon_monoxide", "Oxygen",
+                         //"iso-Butane",       "n-Butane",   "iso-Pentane",     "n-Pentane", "n-Hexane",
+                         //"n-Heptane",        "n-Octane",   "n-Nonane",        "n-Decane",  "Helium",   "Argon"};
+
+std::vector<std::string> gas = {"74-82-8" ,        "7727-37-9",       "124-38-9",         "74-84-0",      "74-98-6",   "7732-18-5",
+                                "7783-06-4",        "1333-74-0",       "630-08-0",         "7782-44-7",
+                                "75-28-5",          "106-97-8",        "78-78-4",          "109-66-0",     "110-54-3",
+                                "142-82-5",         "111-65-9",        "111-84-2",         "124-18-5",     "7440-59-7", "7440-37-1"};
 
 arc A = { 0.153832600,  1.341953000, -2.998583000, -0.048312280,  0.375796500, -1.589575000, -0.053588470,  0.886594630, -0.710237040, -1.471722000,
           1.321850350, -0.786659250,  0.2291290e-8, 0.157672400, -0.436386400, -0.044081590, -0.003433888,  0.032059050,  0.024873550,  0.073322790,

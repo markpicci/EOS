@@ -1,12 +1,4 @@
-#include <math.h>
-#include <stdio.h>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <map>
-#include <stdlib.h>
-#include <conio.h>
-#include <filesystem>
+#include "mainh.hpp"
 #include "conIO.h"
 #include "ISO-20765-5.hpp"
 #include "ISO-12213-2.hpp"
@@ -15,19 +7,7 @@
 #include "GERG2008.hpp"
 #include "generalizedcubic.hpp"
 #include "IF97.hpp"
-
-#define naga 21
-
-std::vector<std::string>  gasName = {"Methane", "Nitrogen", "Carbon_dioxide", "Ethane", "Propane", "iso-Butane", "n-Butane", "iso-Pentane", "n-Pentane", "n-Hexane",
-                     "n-Heptane", "n-Octane", "n-Nonane", "n-Decane", "Hydrogen", "Oxygen", "Carbon_monoxide",  "Water", "Hydrogen_sulfide", "Helium", "Argon"};
-struct mixSt{
-    std::string name;
-    std::map<std::string, double> mix;
-};
-std::ofstream logs;
-std::vector<mixSt> mix;
-size_t activeMix = -1;
-bool MixValid(){ return (activeMix >= 0 &&  activeMix < mix.size());}
+#include "BWRS.hpp"
 
 template<typename... Args>
 void logEOSdata(std::ofstream& logs, std::string_view fmt_str, Args&&... args){
@@ -36,201 +16,32 @@ void logEOSdata(std::ofstream& logs, std::string_view fmt_str, Args&&... args){
     logs << outFor;
 }
 
-int manageMix(){
-std::string fname;
-mixSt tmix;
-char charIn;
-double perc, tot;
-
-    system("cls");
-    do{
-        std::vector<std::string> menuList = {"(g)as","(l)oad","(s)ave","(i)nput","(m)ix","(c)ollection","(d)elete", "(e)xit"};
-        charIn = conMenu("GAS MISTURE",menuList);
-        std::cout <<"\n";
-
-        if(charIn=='g'){
-            std::cout <<"================================================================================";std::cout << "\n";
-            std::filesystem::path directorypath;
-            directorypath = std::filesystem::current_path();
-            for (const auto & entry : std::filesystem::directory_iterator(directorypath))
-                if(entry.path().extension() == ".mix")
-                    std::cout << entry.path() << "\n";
-            choice("\nReturn Main Menu (y) ","yY");
-        }
-
-        if(charIn=='l'){
-            std::cout <<"================================================================================";std::cout << "\n";
-            std::cout <<"File name without extension "; fname=get_string("LhGreenF");
-            if(fname.empty()) {fname="test"; std::cout <<fname;}
-            std::cout <<'\n';
-            std::filesystem::path directorypath;
-            directorypath = std::filesystem::current_path();
-            std::ifstream fh(fname+".mix");
-            if( fh.is_open()){
-                int nmix;
-                fh >> nmix;
-                for(int i=0;i<nmix;i++){
-                    fh>>tmix.name;
-                    for(int i =0; i<naga;i++){
-                        std::string gasName; double gasComp;
-                        fh>>gasName;
-                        fh>>gasComp;
-                        tmix.mix[gasName] = gasComp;
-                    }
-                    mix.push_back(tmix); activeMix = mix.size()-1;
-                }
-                fh.close(); // close file
-                std::cout << "Number of mixture loaded - '" << mix.size() << "'\n";
-
-                if (activeMix==0){
-                    logMix(logs,mix[activeMix].name, mix[activeMix].mix);
-                    choice("Exit (y) ","yY");
-                } else {
-                    int i=0;
-                    std::cout <<"\nSelect Active Mixture\n";
-                    for(const auto& mixPair:mix) {printf("%2d     Mixture Name     \033[92m%s\033[0m\n", i, mixPair.name.c_str());i++;}
-                    std::cout <<"\nSelect Active Mixture "; activeMix = get_int("LhYellowF");std::cout <<"\n";
-                    if(!MixValid()){
-                        activeMix = -1;
-                        std::cout << "Selection NON valid \n";
-                        choice("Exit (y) ","yY");
-                    } else
-                        logMix(logs,mix[activeMix].name, mix[activeMix].mix);
-                }
-            } else {std::cout << "Could not open the file - '" << fname << "'\n"; choice("Exit (y) ","yY");}
-        }
-
-        if(charIn=='s'){
-            std::cout <<"================================================================================";std::cout << "\n";
-            std::cout <<"File name without extension "; fname=get_string("LhGreenF");
-            if(fname.empty()) {fname="test"; std::cout <<fname;}
-            std::cout <<'\n';
-            std::filesystem::path directorypath;
-            directorypath = std::filesystem::current_path();
-            std::ofstream fh(fname+".mix");
-            if( fh.is_open()){
-                int nmix=mix.size();
-                fh << nmix<<'\n';
-                for(int i=0;i<nmix;i++){
-                    fh<<mix[i].name<<'\n';
-                    for(const auto& gasPair: mix[i].mix){
-                        fh<<gasPair.first<<" ";
-                        fh<<gasPair.second<<'\n';
-                    }
-                }
-                fh.close(); // close file
-                std::cout << "Number of mixture saved - '" << mix.size() << "'\n";
-                getch();
-            } else std::cout << "Could not open the file - '" << fname << "'\n";
-        }
-
-        if(charIn=='d'){
-            std::cout <<"================================================================================";std::cout << "\n";
-            charIn=choice("Confirm to DELETE all mixtures (y/n) ","ynYN");
-            if (charIn =='y' || charIn =='Y'){
-                    mix.clear();
-                    activeMix = -1;
-            }
-        }
-
-        if(charIn=='i'){
-            system("cls");
-            std::cout <<"================================================================================";std::cout << "\n";
-            std::cout <<"Mixture Name  "; tmix.name=get_string(); std::cout << '\n';
-            tot = 0.0;
-            for(int i =0; i<naga;i++){
-                printf("%2d  \033[92m%18s\033[0m ",i, gasName[i].c_str());
-                perc=get_double(); tmix.mix[gasName[i]] = perc;
-                printf("\n");
-                tot += perc;
-            }
-            printf("\n");
-            charIn=choice("Confirm to add (y/n) ","ynYN");
-            printf("\n       Total composition %7.5f\n\n", tot);
-            if (charIn =='y' || charIn =='Y') {
-                mix.push_back(tmix);
-                activeMix = mix.size()-1;
-                logMix(logs,mix[activeMix].name, mix[activeMix].mix);
-            }
-        }
-
-        if(charIn=='m' && !MixValid()){
-            std::cout <<"================================================================================";std::cout << "\n";
-            choice("NOT valid mixture       Exit (y) \n","yY");printf("\n");
-        }
-        if(charIn=='m' && MixValid()){
-            system("cls");
-            std::cout <<"================================================================================";std::cout << "\n";
-            tmix = mix[activeMix];
-            printf("      Mixture Name     \033[93m%s\033[0m\n", tmix.name.c_str());
-            tot = 0.0;
-            for(int i =0; i<naga;i++){
-                tot += tmix.mix[gasName[i]];
-                if (tmix.mix[gasName[i]]!= 0.0)
-                    printf("%2d  \033[92m%18s\033[0m xi= %7.5f\n",i, gasName[i].c_str(), tmix.mix[gasName[i]]);
-            }
-            printf("\n       Total composition %7.5f\n", tot);
-            choice("       Exit (y) ","yY");
-        }
-
-        if(charIn=='c'){
-            int i=0;
-            system("cls");
-            std::cout <<"================================================================================";std::cout << "\n";
-            for(const auto& mixPair:mix) {printf("%2d     Mixture Name     \033[92m%s\033[0m\n", i, mixPair.name.c_str());i++;}
-            std::cout <<"\nSelect Active Mixture "; activeMix = get_int("LhYellowF");
-            if(!MixValid())
-                activeMix = -1;
-            else
-                logMix(logs,mix[activeMix].name, mix[activeMix].mix);
-        }
-
-    } while (charIn != 'e');
-    return 0;
-}
-
-int main(int argc, char *argv[]) {
-
+void EOS(std::ofstream& logs, const size_t activeMix, std::vector<mixSt>& mix) {
 double TT, PP, BMIX;
 double D, P, Z, dPdD, d2PdD2, d2PdTD, dPdT, U, H, S, Cv, Cp, W, G, JT, Kappa, A;
-
+double Tin, Pin, MW;
+char charIn;
 int ierr, dFlag;
 std::string herr;
 std::string fname;
-FILE* out;
+
 ISO122132 Aga8;
 ISO207655 Visosity;
 AGA8Gross  AGA8Gr;
 AGA8Detail AGA8Det;
 GERG2008   Gerg;
 PengRobinson PR;
+BWRS Bwrs;
 
-
-double Tin, Pin, MW;
-char charIn;
-
-    initCon();
-    std::cout <<"LOG File name without extension "; fname=get_string("LhGreenF");
-    if(fname.empty()) {fname="log"; std::cout <<fname;}
-    std::cout <<'\n';
-    std::filesystem::path directorypath;
-    directorypath = std::filesystem::current_path();
-    logs.open(fname+".log");
-    if (!logs.is_open()){
-        std::cout <<"ERROR opening LOG file\n";
-        return 1;
-    }
-    logHeader(logs);
-    std::vector<std::string> menuList = {"(1) ISO-12213-2","(2) AGA8 Detail","(3) AGA8Gross","(4) GERG 2008","(5) PENG ROBINSON","(9) IAPWS R7-97 [2012]", "", "(m)ix","(r)ange","(e)xit"};
+    clearScreen();
+    std::vector<std::string> menuList = {"(1) ISO-12213-2","(2) AGA8 Detail","(3) AGA8Gross","(4) GERG 2008","(5) PENG ROBINSON","(6) BWRS","(9) IAPWS R7-97 [2012]","(P) Pressure", "(r)ange", "(e)xit"};
 
 //===================================== MANUAL
     do{
-        charIn = conMenu("MAIN MENU",menuList);
+        charIn = conMenu("EOS MENU",menuList);
         std::cout <<"\n";
-
-        if(charIn=='m') manageMix();
-
-        if(charIn=='1' && MixValid()){
+        bool MixValid = (activeMix >= 0 &&  activeMix < mix.size());
+        if(charIn=='1' && MixValid){
             std::cout <<"================================================================================";std::cout << "\n";
             std::cout <<"\033[93mISO-12213-2\033[0m\n";
             std::cout <<"Pressure [MPa.g] = "; Pin = get_double("LhGreenF"); std::cout << "\n";
@@ -249,7 +60,7 @@ char charIn;
             choice("Exit (y) ","yY");
         }
 
-        if(charIn=='2' && MixValid()){
+        if(charIn=='2' && MixValid){
             std::cout <<"================================================================================";std::cout << "\n";
             std::cout <<"\033[93mAGA 8 DETAIL METHOD\033[0m\n";
             std::cout <<"Pressure [MPa.g] = "; Pin = get_double("LhGreenF"); std::cout << "\n";
@@ -284,8 +95,38 @@ char charIn;
             choice("Exit (y) ","yY");
         }
 
-        if(charIn=='3' && MixValid()){
+        if(charIn=='P' && MixValid){
+            std::cout <<"================================================================================";std::cout << "\n";
+            std::cout <<"\033[93mAGA 8 DETAIL METHOD\033[0m\n";
+            std::cout <<"Density [Kg/m3] = "; D = get_double("LhGreenF"); std::cout << "\n";
+            std::cout <<"Temperature [C]  = "; Tin = get_double("LhGreenF"); std::cout << "\n";
+            logEOSin(logs, "AGA 8 DETAIL METHOD", Pin, Tin, atm);
+            TT=Tin+273.15;
+            AGA8Det.MolarMass(mix[activeMix].mix);
+            MW = AGA8Det.GetMW(); //[Kg/Kmol]
+            D = D/MW; //[Kg/m3] -> [kmol/m3]
+            AGA8Det.Properties(TT, D, PP, Z, dPdD, d2PdD2, d2PdTD, dPdT, U, H, S, Cv, Cp, W, G, JT, Kappa,A);
+            std::cout <<"\033[93mResults\033[0m\n";
+            logEOSdata(logs,"Molar Mass......... {:<15.4f} {}\n", MW,"[g/mol]");
+            logEOSdata(logs,"Density............ {:<15.3f} {}\n", D*MW ,"[kg/m3]");
+            logEOSdata(logs,"Pressure........... {:<15.4f} {:10s}       :  {:<15.4f} {}\n", PP/1000.0,"[Mpa.a]", PP*kpaTOpsi, "[psi.a]" );
+            logEOSdata(logs,"Z.................. {:<15.6f} {}\n", Z ,"[-]");
+            logEOSdata(logs,"U.................. {:<15.2f} {}\n", U/MW, "[KJ/Kg]");
+            logEOSdata(logs,"H.................. {:<15.2f} {}\n", H/MW, "[KJ/Kg]");
+            logEOSdata(logs,"S.................. {:<15.4f} {}\n", S/MW, "[KJ/(Kg-K)]");
+            logEOSdata(logs,"Cv................. {:<15.4f} {}\n", Cv/MW, "[KJ/(Kg-K)]");
+            logEOSdata(logs,"Cp................. {:<15.4f} {}\n", Cp/MW, "[KJ/(Kg-K)]");
+            logEOSdata(logs,"Sound Speed........ {:<15.2f} {}\n", W, "[m/S]");
+            logEOSdata(logs,"G.................. {:<15.2f} {}\n", G/MW, "[KJ/Kg]");
+            logEOSdata(logs,"Joule-Thomson...... {:<15.4f} {}\n", JT*1000.0, "[K/MPa]");
+            logEOSdata(logs,"Isentropic Exponent {:<15.7f} {}\n", Kappa, "[-]");
+            logEOSdata(logs,"Helmholtz.......... {:<15.4f} {}\n\n", A/MW, "[KJ/kPa]");
+            choice("Exit (y) ","yY");
+        }
+
+        if(charIn=='3' && MixValid){
             double Hv, Gr, HN, HCH;
+            Hv = 0.0;
             double Th; //     Th - Reference temperature for heating value (K)
             double Td; //     Td - Reference temperature for density (K)
             double Pd; //     Pd - Reference pressure for density (kPa)
@@ -320,7 +161,7 @@ char charIn;
             choice("Exit (y) ","yY");
         }
 
-        if(charIn=='4' && MixValid()){
+        if(charIn=='4' && MixValid){
             std::cout <<"================================================================================";std::cout << "\n";
             std::cout <<"\033[93mGERG 2008\033[0m\n";
             std::cout <<"Pressure [MPa.g] = "; Pin = get_double("LhGreenF"); std::cout << "\n";
@@ -360,7 +201,7 @@ char charIn;
             choice("Exit (y) ","yY");
         }
 
-        if(charIn=='5' && MixValid()){
+        if(charIn=='5' && MixValid){
             double a0, Da0Dt,Da0Dtt;
             std::cout <<"================================================================================";std::cout << "\n";
             std::cout <<"\033[93mPENG ROBINSON\033[0m\n";
@@ -399,6 +240,39 @@ char charIn;
             choice("Exit (y) ","yY");
         }
 
+        if(charIn=='6' && MixValid){
+            std::cout <<"================================================================================";std::cout << "\n";
+            std::cout <<"\033[93mBWRS\033[0m\n";
+            std::cout <<"Pressure [MPa.g] = "; Pin = get_double("LhGreenF"); std::cout << "\n";
+            std::cout <<"Temperature [C]  = "; Tin = get_double("LhGreenF"); std::cout << "\n";
+            logEOSin(logs, "BWRS", Pin, Tin, atm);
+            TT=Tin+273.15;
+            PP=(Pin+atm); //MPa PRESSURE is ABSOLUTE
+            Bwrs.MolarMass(mix[activeMix].mix);
+            double MW = Bwrs.GetMW();
+            Bwrs.Density(0, TT, PP, D, ierr, herr); // density g/m3
+            std::cout <<"\033[93mCheck\033[0m\n";
+            logEOSdata(logs,"Density Error ID... {:<d}\n", ierr);
+            logEOSdata(logs,"Density Error...... {:<s}\n", herr);
+            Bwrs.Properties(TT, D, P, Z, dPdD, d2PdD2, d2PdTD, dPdT, U, H, S, Cv, Cp, W, G, JT, Kappa, A);
+            std::cout <<"\033[93mResults\033[0m\n";
+            logEOSdata(logs,"Molar Mass......... {:<15.4f} {}\n", MW,"[g/mol]");
+            logEOSdata(logs,"Density............ {:<15.3f} {}\n", D*1000.0*MW ,"[kg/m3]"); // convert density from from g/m3 tp Kg/m3
+            logEOSdata(logs,"Pressure........... {:<15.4f} {:10s}       :  {:<15.4f} {}\n", PP,"[Mpa.a]", PP*kpaTOpsi, "[psi.a]" );
+            logEOSdata(logs,"Z.................. {:<15.6f} {}\n", Z ,"[-]");
+            logEOSdata(logs,"U.................. {:<15.2f} {}\n", U/MW, "[KJ/Kg]");
+            logEOSdata(logs,"H.................. {:<15.2f} {}\n", H/MW, "[KJ/Kg]");
+            logEOSdata(logs,"S.................. {:<15.4f} {}\n", S/MW, "[KJ/(Kg-K)]");
+            logEOSdata(logs,"Cv................. {:<15.4f} {}\n", Cv/MW, "[KJ/(Kg-K)]");
+            logEOSdata(logs,"Cp................. {:<15.4f} {}\n", Cp/MW, "[KJ/(Kg-K)]");
+            logEOSdata(logs,"Sound Speed........ {:<15.2f} {}\n", W, "[m/S]");
+            logEOSdata(logs,"G.................. {:<15.2f} {}\n", G/MW, "[KJ/Kg]");
+            logEOSdata(logs,"Joule-Thomson...... {:<15.4f} {}\n", JT*1000.0, "[K/MPa]");
+            logEOSdata(logs,"Isentropic Exponent {:<15.7f} {}\n", Kappa, "[-]");
+            logEOSdata(logs,"Helmholtz.......... {:<15.4f} {}\n\n", A/MW, "[KJ/kg]");
+            choice("Exit (y) ","yY");
+        }
+
         if(charIn=='9'){
             std::cout <<"================================================================================";std::cout << "\n";
             std::cout <<"\033[93mIAPWS 97 [2012]\033[0m\n";
@@ -419,7 +293,7 @@ char charIn;
             choice("Exit (y) ","yY");
         }
 
-    if(charIn=='r' && MixValid()){
+    if(charIn=='r' && MixValid){
         std::cout <<"================================================================================";std::cout << "\n";
         double ts, te,td, ps, pe, pd;
         std::cout <<  "Temperature START    [\370C] "; ts=get_double("LhGreenF");
@@ -430,37 +304,52 @@ char charIn;
         std::cout <<  "\nPressure    STEP  [Mpa.g] "; pd=get_double("LhGreenF");
 
         std::cout <<"\n\nFile name without extension "; fname=get_string("LhGreenF");
-        if(fname.empty()) {fname="test"; std::cout <<fname;}
+        if(fname.empty()) fname="test";
         std::cout <<'\n';
         std::filesystem::path directorypath;
         directorypath = std::filesystem::current_path();
-        fname = directorypath.string().c_str()+fname+".csv";
+        //fname = directorypath.string().c_str()+fname+".csv";
+        fname = fname+".csv";
+        FILE * out;
         if((out = fopen(fname.c_str(), "w")) == NULL){
             std::cout << "Could not open the file - '" << fname << "'\n";
         } else {
             printf("\n            T[\370C] ");
-            fprintf(out,"T[\370C]; ");
+            fprintf(out,";T[\370C]; ");
             for (double ttemp = ts; ttemp<=te; ttemp+=td){ //PRINT TEMPERATURE
                 printf("%6.2f     ",ttemp);
                 fprintf(out,"%6.2f; ",ttemp); // write
             }
             printf("\n");
             fprintf(out,"\n"); // write
-            Aga8.MolarMass(mix[activeMix].mix);
+            AGA8Det.MolarMass(mix[activeMix].mix);
+            MW = AGA8Det.GetMW();
 
             for (; ps<=pe; ps+=pd){ //PRESSSUE
                 printf("P[Mpa.g] %7.2f ",ps);
                 fprintf(out,"P[Mpa.g]; %7.2f; ",ps);
                 for (double ttemp = ts; ttemp<=te; ttemp+=td){ //TEMPERATURE
-                    { for (size_t k=0; k<mix.size(); k++){
+                    //for (size_t k=0; k<mix.size(); k++){ //if you want to cycle on mix
                         TT=ttemp+273.15;
                         PP=ps+atm; //PRESSURE is ABSOLUTE
-                        Aga8.DZOFPT(&PP, &TT, &D, &Z, &BMIX);
-                        printf("%9.5f ",Z);
-                        fprintf(out,"%9.5f; ",Z); // write
-                        };
+
+                        D = -1.0;
+                        AGA8Det.Density(TT, PP*1000.0 ,D, ierr, herr);
+                        if(ierr==0) {
+                            AGA8Det.Properties(TT, D, PP, Z, dPdD, d2PdD2, d2PdTD, dPdT, U, H, S, Cv, Cp, W, G, JT, Kappa,A);
+                            //fprintf(out,"%9.5f; ",JT*1000.0);
+                            //printf("%9.5f; ",JT*1000.0);
+                            fprintf(out,"%9.5f; ",D*MW);
+                            printf("%9.5f; ",D*MW);
+                            //fprintf(out,"%15.7f; ",Kappa);
+                            //printf("%15.7f; ",Kappa);
+                        }
+
+                        //Aga8.DZOFPT(&PP, &TT, &D, &Z, &BMIX);
+                        //printf("%9.5f ",Z);
+                        //fprintf(out,"%9.5f; ",Z); // write
+                        //};
                     };
-                };
                 printf("\n");
                 fprintf(out,"\n"); // write
             };
@@ -471,5 +360,4 @@ char charIn;
     }
 
     } while (charIn != 'e');
-    logs.close();
 }

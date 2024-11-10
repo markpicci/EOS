@@ -1,5 +1,72 @@
 #include "MathUtil.h"
+#include <format>
+#include <string>
+#include <vector>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <cmath>
+
+//==============================================================================================
+//simple matrix dump
+//
+void matrixDump(std::vector<std::vector<double>>& m){
+    std::filesystem::path directorypath;
+    directorypath = std::filesystem::current_path();
+    std::string fileName = directorypath.string();
+    fileName += "/matrix.txt";
+    std::ofstream outputFileStream(fileName, std::ios::out);
+
+    for(const std::vector<double>& r : m){
+        for(const double& d : r){
+            if (std::isnan(d)) outputFileStream << std::format("{:<8s} ","NAN");
+            else outputFileStream << std::format("{:<8.4f} ",d);
+        }
+        outputFileStream << "\n";
+    }
+    outputFileStream.close();
+}
+
+bool checkSymmetric(std::vector<std::vector<double>>& m){
+    size_t row = m.size();
+    size_t col = m[0].size();
+
+    if (row!=col) return false;
+    for(size_t rowi=0; rowi<row; rowi ++)
+        for(size_t coli=0; coli<rowi; coli ++)
+            if (m[rowi][coli]!=m[coli][rowi]) return false;
+    return true;
+}
+
+// Kahan summation algorithm
+// Function to implement the Kahan
+// summation algorithm
+double kahanSum(std::vector<double> &fa)
+{
+    double sum = 0.0;
+
+    // Variable to store the error
+    double c = 0.0;
+
+    // Loop to iterate over the array
+    for(double f : fa)
+    {
+        double y = f - c;
+        double t = sum + y;
+
+        // Algebraically, c is always 0
+        // when t is replaced by its
+        // value from the above expression.
+        // But, when there is a loss,
+        // the higher-order y is cancelled
+        // out by subtracting y from c and
+        // all that remains is the
+        // lower-order error in c
+        c = (t - sum) - y;
+        sum = t;
+    }
+    return sum;
+}
 
 //==============================================================================================
 //simple bubble sort
@@ -149,10 +216,10 @@ double TOL = 0.5e-9;
 }
 
 //==============================================================================================
-//estimate the root using Chamber's method (quadratic solution).
+//estimate the root using Bisection Method.
 //
 int ZeroBisec(double& sol, double goal, double fun(double), double X1, double X2) {
-long I, itr, maxitr=50;
+long itr, maxitr=50;
 double F, F1, F2;
 double TOL = 0.5e-9;
 
@@ -182,6 +249,9 @@ double TOL = 0.5e-9;
 	 return itr;
 }
 
+//==============================================================================================
+//estimate the root using Newton Method.
+//
 int ZeroNew(double& sol, double goal, double fun(double),double funDer(double)) {
 int itr, maxitr=50;
 double h, TOL = 0.5e-9;
@@ -193,72 +263,170 @@ double h, TOL = 0.5e-9;
     }
     return itr;
 }
-/*
-// Dummy for test
-double fun(double x){
-    //double ret = x*x*x-2.9*x*x+2.8*x-0.9;
-    double ret = pow(2,x);
-    return ret ;
-}
-// Dummy for test derivate
-double funDer(double x){
-    //double ret = x*x*x-2.9*x*x+2.8*x-0.9;
-    double ret = log(2.0)*pow(2,x);
-    return ret ;
-}
 
-main(){
-double root[3], img, ris;
-int nRoot;
-double a, b, c;
-double x, x2, x3;
+//==============================================================================================
+// Binary Search [n, n+1)
+// CHECK x<xd[low] and x>xd[high] shall be done before enter the sub
+// high SAHLL be a valid entry array sized (low, high+1)
+template <class T> inline size_t binarySearch(const std::vector<T>& xd, T x, size_t low, size_t high)
+{
+    size_t left = low;
+    size_t half = high-low+1;
 
-    //a = -4.0, b = 4.0, c = 6.0;  //1
-    //a = 4.0, b = -34.0, c = 6.0; //3
-    a = -2.9, b = 2.8, c = -0.9;   //2
-
-    nRoot = cubicRoot(1, a, b, c, root, img);
-    std::cout << "nroots " << nRoot << "     - EPS "<< epsD << "\n";
-    std::cout << root[0] << " "<< root[1] << " "<< root[2] << "\n";
-    std::cout << "Img "<< img << "\n\n";
-
-    x = root[0];
-    x2 = x*x;
-    x3 = x*x*x;
-    std::cout << " Zero 1 " << x3+a*x2+b*x+c << "\n";
-    if (nRoot==2){
-        x = root[1];
-        x2 = x*x;
-        x3 = x*x*x;
-        std::cout << " Zero 2 " << x3+a*x2+b*x+c << "\n";
+    while (half > 1) {
+        half >>= 1;
+        left = (x < xd[left + half] ? left : left+half);
     }
-    if (nRoot==3){
-        x = root[1];
-        x2 = x*x;
-        x3 = x*x*x;
-        std::cout << " Zero 2 " << x3+a*x2+b*x+c << "\n";
-        x = root[2];
-        x2 = x*x;
-        x3 = x*x*x;
-        std::cout << " Zero 3 " << x3+a*x2+b*x+c << "\n";
+    return left;
+}
+//==============================================================================================
+// Linear Search [n, n+1)
+// CHECK x<xd[low] and x>xd[high] shall be done before enter the sub
+// high SAHLL be a valid entry array sized (low, high+1)
+template <class T> inline size_t linearSearch(const std::vector<T>& xd, T x, size_t low, size_t high)
+{
+    for(size_t i = low; i< high; i++)
+        if (x>=xd[i] && x<xd[i+1]) return i;
+    return high-1;
+}
+
+//==============================================================================================
+//Linear Interpolation
+//
+int interLin(double x, double& y, const std::vector<double>& xv, const std::vector<double>& yv, int extrapolate = 1) {
+int i, nEle;
+
+//Initial check
+    if(xv.size()!=yv.size()) return 1; //ERROR not same size
+    nEle = xv.size();
+    y =0.0;
+    if(nEle<2) return 1; //ERROR we need at least two point
+
+    switch(extrapolate){
+        case 0: // NO Extrapolation
+            if(x<xv[0])    return 2; //underflow
+            if(x>xv[nEle-1])  return 3; //overflow
+            break;
+
+        case 1: // Extrapolation with value
+            if(x<xv[0])    {y=yv[0];  return 4;}  //underflow
+            if(x>xv[nEle-1])  {y=yv[nEle-1];return 5;} //overflow
+            break;
+
+        case 2: break;
+
+        default:
+            if(x == xv[0]) {y=yv[0]; return 0;}
+            if(x == xv[nEle-1]) {y=yv[nEle-1]; return 0;}
     }
 
-    std::cout << "\n";
-    int nIter = Zero(x, 5.0, fun, 0.1, 5.0);
-    std::cout << " Chamber's method iteration " << nIter << "\n";
-    std::cout << " Chamber's method X " << x << "\n";
-    std::cout << " Chamber's method Y " << fun(x) << "\n";
+    i=binarySearch<double>(xv, x, 0, nEle-1);
+    if(i > nEle-2) i = nEle-2;
 
-    std::cout << "\n";
-    nIter = ZeroNew(x, 5.0, fun, funDer);
-    std::cout << " Newton's method iteration " << nIter << "\n";
-    std::cout << " Newton's method X " << x << "\n";
-    std::cout << " Newton's method Y " << fun(x) << "\n";
+//Calculate INTERPOLATION in interval i-1 / i
+    double m    = yv[i+1]-yv[i];
+    double den  = xv[i+1]-xv[i];
+    if(fabs(den)< epsD ){
+            y = (yv[i+1]+yv[i]) / 2.0; //bad situation
+        } else {
+            m /= den;
+            y =  m* (x-xv[i]) + yv[i];
+        }
 
-    std::cout << "\n";
-    nIter = ZeroBisec(x, 5.0, fun, 0.1, 5.0);
-    std::cout << " Bisec's method iteration " << nIter << "\n";
-    std::cout << " Bisec's method X " << x << "\n";
-    std::cout << " Bisec's method Y " << fun(x) << "\n";
+    return 0;
+}
 
-}*/
+//****************************************************************************80
+//
+//  Purpose:
+//    LAGRANGE_VALUE_1D evaluates the Lagrange interpolant.
+//
+//  Discussion:
+//    The Lagrange interpolant L(ND,XD,YD)(X) is the unique polynomial of
+//    degree ND-1 which interpolates the points (XD(I),YD(I)) for I = 1
+//    to ND.
+//
+//    The Lagrange interpolant can be constructed from the Lagrange basis
+//    polynomials.  Given ND distinct abscissas, XD(1:ND), the I-th Lagrange
+//    basis polynomial LB(ND,XD,I)(X) is defined as the polynomial of degree
+//    ND - 1 which is 1 at  XD(I) and 0 at the ND - 1 other abscissas.
+//
+//    Given data values YD at each of the abscissas, the value of the
+//    Lagrange interpolant may be written as
+//
+//      L(ND,XD,YD)(X) = sum ( 1 <= I <= ND ) LB(ND,XD,I)(X) * YD(I)
+//
+//  Parameters:
+//
+//    Input, double XD[ND], the data points.
+//    Input, double YD[ND], the data values.
+//
+//    Output, double LAGRANGE_VALUE_1D, the interpolated values.
+//
+int lagrange_value_1d (double x, double& y, const std::vector<double>& xd, const std::vector<double>& yd, int extrapolate){
+int n, i, j, index, order;
+std::vector<double> lb(4); //order  = 4
+
+//Initial check
+    order = 4;
+    //lb.resize(order)
+    if(xd.size()!=yd.size()) return 1; //ERROR not same size
+    n = xd.size();
+    if (n<=1) return 1; //ERROR we need at least two point
+    if (n<=4) order = n; // Order is order of polinomial order 3 require 4 point
+    if (n>4)  order = 4; // Order is order of polinomial order 3 require 4 point
+
+    switch(extrapolate){
+        case 0: // NO Extrapolation
+            if(x<xd[0])    return 2; //underflow
+            if(x>xd[n-1])  return 3; //overflow
+            break;
+
+        case 1: // Extrapolation with value
+            if(x<xd[0])    {y=yd[0];  return 4;}  //underflow
+            if(x>xd[n-1])  {y=yd[n-1];return 5;} //overflow
+            break;
+
+        case 2: break;
+
+        default:
+            if(x == xd[0]) {y=yd[0]; return 0;}
+            if(x == xd[n-1]) {y=yd[n-1]; return 0;}
+    }
+
+    index = 0;
+    // If order is less then 2 linear or parabolic we have 2 or three point no need to look for
+    if (n>4){
+        index=binarySearch<double>(xd, x, 0, n-1);
+        if (index>=n-order) index = n-order;
+        if (index>=1 && index<n-order) index--; // keep interpolation on middle span
+    }
+
+    //Lagrange Base
+    for ( j = 0; j < order; j++ ) lb[j] = 1.0;
+    for ( i = 0; i < order; i++ )
+        for ( j = 0; j < order; j++ )
+            if ( j != i )
+            lb[i] *= ( x- xd[j+index] ) / ( xd[i+index] - xd[j+index] );
+
+    y = 0.0;
+    for (int j = 0; j < order; j++)
+        y += lb[j] * yd[j+index];
+
+    return 0;
+}
+
+int nofDecimals(const double val)
+{
+    int result = 0;
+    double epsilon = epsD;
+    double exponent = 1.0;
+
+    while(fabs(fmod(val * exponent, 1.0)) > epsilon){
+        ++result;
+        epsilon  *= 10;
+        exponent *= 10;
+    }
+
+    return result;
+}
